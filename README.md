@@ -1,4 +1,4 @@
-# pagel2graph
+# Indizio 
 Tools for converting Pagel results to GraphML format and subsequently filter the GraphML.
 
 ## Installation
@@ -53,7 +53,7 @@ The current iteration of this software uses hardcoded file paths. Please follow 
 
 ```
 # Make sure you're in the right directory
-cd pagel2graph
+cd indizio
 # Make a 'data' directory
 mkdir data
 ```
