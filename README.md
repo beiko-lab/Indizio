@@ -6,15 +6,14 @@ Installation not currently supported for Windows.
 
 Download the repository
 ```
-git clone https://github.com/alexmanuele/pagel2graph.git
+git clone https://github.com/beiko-lab/indizio.git
 ```
 
 Suggested: Create a conda environment to manage dependancies. This requires Anaconda or Miniconda.
 
 ### Linux
-```
 ~~conda env create -f environment.yml~~
-```
+
 Please use the MacOS instructions for now. A later version will include robust install directions.
 ### MacOS
 For now, to install:
@@ -33,7 +32,7 @@ Expects as input a GraphML file where all nodes contain an "lr" attribute referr
 Given a GraphML file and a node of interest, filter the GraphML file to contain the node and any neighbors satisfying edge filtering criteria up to a specified depth.
 
 ```
-conda activate pagel2graph
+conda activate indizio
 
 python filter_graphml.py \\
  -i input_file_path \\
@@ -68,7 +67,7 @@ Once your data is configured properly, usage is simple.
 Open a terminal and activate your conda environment:
 
 `
-conda activate pagel2graph
+conda activate indizio
 `
 Then, type this command into your terminal from the root directory of the codebase:
 
