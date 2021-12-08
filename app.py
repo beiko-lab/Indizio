@@ -5,9 +5,9 @@ import pandas as pd
 
 import dash
 from dash.dependencies import Output, Input, State
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dash_table
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 
@@ -128,17 +128,12 @@ page1_layout = dbc.Container(fluid=True, children=[
         dbc.Col([
             dcc.Loading(dcc.Graph(id='heatmap-graph'),),
             dbc.Row([
-                dbc.Col([
-                    dbc.FormGroup([
-                        dbc.Label("Choose Metric"),
-                        dcc.Dropdown(
-                            id="dataset-select", value=1,
-                            options=[
-                                {"label": "Likelihood Ratio", "value": 1},
-                                {"label": "P Value", "value": 2},])
-                            ]
-                        ),
-                ],className='pl-5 pr-5'),
+                    dbc.Label("Choose Metric"),
+                    dcc.Dropdown(
+                        id="dataset-select", value=1,
+                        options=[
+                            {"label": "Likelihood Ratio", "value": 1},
+                            {"label": "P Value", "value": 2},])
             ],),
         ]),
     ]),
@@ -152,7 +147,7 @@ page2_layout = dbc.Container(fluid=True, children=[
             html.H3(children="Network Visualization"),
             dbc.Row([
                 dbc.Col(width=6,children=[
-                    dbc.FormGroup([
+                    dbc.Row([
                         dbc.Label("Change network Layout"),
                         dcc.Dropdown(
                             id='network-callbacks-1',
@@ -177,7 +172,7 @@ page2_layout = dbc.Container(fluid=True, children=[
                             ], className="bg-light text-dark",
                         ),
                         ]),
-                    dbc.FormGroup([
+                    dbc.Row([
                         dbc.Col([
                             dbc.Label('Select a node of interest.'),
                             dcc.Dropdown(
@@ -209,9 +204,9 @@ page2_layout = dbc.Container(fluid=True, children=[
                         ]),
                     ]),
 
-                    dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'}, block=True),
+                    dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'}, ),
                 ]),
-
+##################END FORM
                 dbc.Col(
                         width=6,
                         children=dbc.Card(
@@ -248,7 +243,7 @@ page3_layout = dbc.Container(fluid=True, children=[
             dcc.Loading(dcc.Graph(id='histogram-graph'),),
             dbc.Row([
                 dbc.Col([
-                    dbc.FormGroup([
+                    dbc.Row([
                         dbc.Label("Choose Facet Metric"),
                         dcc.Dropdown(
                             id="histogram-metric-select", value=1,
@@ -262,7 +257,7 @@ page3_layout = dbc.Container(fluid=True, children=[
                                 {"label": "Focal Node Degree", "value": 1},
                                 {"label": "Graph n Nodes", "value": 2},
                                 {'label': "Graph n Edges", 'value': 3},]),
-                        dbc.Button('Re-calculate Plot', id='histogram-button', color='primary', style={'margin-bottom': '1em'}, block=True),
+                        dbc.Button('Re-calculate Plot', id='histogram-button', color='primary', style={'margin-bottom': '1em'},),
                     ]),
                 ],className='pl-5 pr-5'),
             ],),

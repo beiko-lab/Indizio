@@ -13,17 +13,15 @@ Suggested: Create a conda environment to manage dependancies. This requires Anac
 
 ### Linux
 ```
-conda env create -f environment.yml
+~~conda env create -f environment.yml~~
 ```
+Please use the MacOS instructions for now. A later version will include robust install directions.
 ### MacOS
-Conda environment files created on Ubuntu machine don't work properly on Mac.
 For now, to install:
 ```
-conda create -n pagel2graph networkx
-conda activate pagel2graph
-conda install -c conda-forge dash
-conda install -c conda-forge dash-bootstrap-components
-conda install -c conda-forge dash_cytoscape
+conda create -n indizio networkx
+conda activate indizio
+conda install -c conda-forge dash dash-bootstrap-components dash_cytoscape
 ```
 
 
