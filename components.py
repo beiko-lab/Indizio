@@ -1,7 +1,7 @@
 # Some components are reused in each app. Put here for easier code readability
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dash_core_components
+from dash import dash_html_components
 import dash_bootstrap_components as dbc
 
 def make_navbar(active=0):
@@ -20,3 +20,30 @@ def make_navbar(active=0):
         dark=True,
     )
     return navbar
+
+
+def make_network_filter_form(distance_labels):
+    data = [
+        dbc.Label('Select thresholding values'),
+        dbc.Input(
+                id='degree',
+                placeholder='Degree (depth of neighborhood)',
+                type='number', min=0, step=1, value=2
+                ),
+        dbc.FormText('Degree (depth of neighborhood)'),
+        """
+        dbc.Input(
+            id='lr-threshold',
+            placeholder="Likelihood Ratio lower bound",
+            type='number', min=0, value=50.0
+            ),
+        dbc.FormText('Likelihood Ratio lower bound'),
+        dbc.Input(
+                id='p-threshold',
+                placeholder="p-value upper bound",
+                type='number', min=0, value=0.05),
+        dbc.FormText("p-value upper bound")
+        """
+    ]
+    for metric in distance_labels:
+        input = dbc.Input(id)
