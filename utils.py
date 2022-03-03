@@ -3,43 +3,60 @@ import pandas as pd
 from collections import Counter
 import networkx as nx
 import os
+import operator 
 from tqdm import tqdm
 
 ################################################################################
 ### Network Utils                                                            ###
 ################################################################################
 
-def nx_to_dash(G, node):
-    nodes = []
+def nx_to_dash(G, nodes):
+    nodesout = []
     for n in G.nodes:
-        if n == node:
-            nodes.append({
+        if n in nodes:
+            nodesout.append({
                         'data': {'id':n, 'label':n, **G.nodes[n]},
                         'classes': 'focal',
             })
         else:
-            nodes.append({'data': {'id':n, 'label':n, **G.nodes[n]},
+            nodesout.append({'data': {'id':n, 'label':n, **G.nodes[n]},
                         'classes':'other',
             })
     edges = []
     for e in G.edges:
         edges.append({'data': {'source': e[0], 'target': e[1], **G.edges[e]}})
-    return nodes + edges
+    return nodesout + edges
 
-def neighborhood(G, node, n):
-    path_lengths = nx.single_source_dijkstra_path_length(G, node)
-    return [node for node, length in path_lengths.items()
-                    if length <= n]
 
-def filter_graph(G, node, d, lr_threshold, p_threshold):
-    edges = []
-    for u,v,e in G.edges(data=True):
-        if e['lr'] >= lr_threshold and e['p'] <= p_threshold:
+def filter_graph(G, nodes, d, attributes, thresholds, bounds):
+    op_dict = {'1': operator.ge, #Threshold is a lower bound, so edges must be >= thresh
+           '2': operator.le, #Threshold is an upper bound, so edges must be <= thresh
+           }
+    subgraphs = []
+    for node in nodes:
+        node_list = []
+        if d == 0:
+            node_list.append(node)
+        edges = []
+        for u,v,e in G.edges(*node_list, data=True):
+            #keep_edge = True
+            #if e['lr'] >= lr_threshold and e['p'] <= p_threshold:
+                #edges.append((u,v))
+            for attr, thresh, bound in zip(attributes, thresholds, bounds):
+                op = op_dict[bound]
+                if not op(e[attr], thresh):
+                    #keep_edge = False
+                    continue
             edges.append((u,v))
-    H=G.edge_subgraph(edges)
-    if node in H.nodes:
-        return H.subgraph(neighborhood(H, node, d))
-    return G.subgraph([node])
+        H=G.edge_subgraph(edges)
+        if node in H.nodes:
+            if d==0:
+                subgraphs.append(H)
+            else:
+                subgraphs.append(H.subgraph(neighborhood(H, node, d)))
+        else:
+            subgraphs.append(G.subgraph([node]))
+    return nx.compose_all(subgraphs)
 
 
 ################################################################################

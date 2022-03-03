@@ -21,6 +21,45 @@ def make_navbar(active=0):
     )
     return navbar
 
+def make_network_form(attributes):
+    data = [
+        dbc.Label('Select thresholding values'),
+
+        dbc.InputGroup([
+            dbc.InputGroupText("Degree (depth of neighborhood)"),
+            dbc.Input(
+                id='degree',
+                placeholder='Degree (depth of neighborhood)',
+                type='number', min=0, step=1, value=0
+            ),
+        ])
+    ]
+    for i, attr in enumerate(attributes):
+        div = dbc.Row([
+            dbc.Col([
+                dbc.InputGroup([
+                    dbc.InputGroupText("{} threshold".format(attr)),
+                    dbc.Input(
+                        id={'role': 'theshold', 'index':i},
+                        placeholder = "{} threshold".format(attr),
+                        type='number', value=0
+                        ),
+                ]),
+            ]),
+             dbc.Col([
+                 dbc.RadioItems(
+                     options=[
+                         {'label': "Lower Bound", "value": 1},
+                         {'label': "Upper Bound", "value": 2},
+                     ],
+                     value=1,
+                     id={'role': "bounds-select", 'index':i},
+                     inline=True,
+                 ),
+             ])
+        ])
+        data.append(div)
+    return data
 
 def make_network_filter_form(distance_labels):
     data = [

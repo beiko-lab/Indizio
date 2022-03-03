@@ -6,7 +6,7 @@ import pandas as pd
 
 import dash
 from dash.dependencies import Output, Input, State
-from dash import dcc, dash_table, html
+from dash import dcc, dash_table, html, ALL
 
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
@@ -207,29 +207,12 @@ if __name__ == '__main__':
                                     id='node-dropdown',
                                     options=node_items,
                                     value=node_items[1]['value'],
-                                    className="bg-light text-dark"),
+                                    className="bg-light text-dark",
+                                    multi=True),
 
                             ]),
-                            dbc.Col([
-                                dbc.Label('Select thresholding values'),
-                                dbc.Input(
-                                        id='degree',
-                                        placeholder='Degree (depth of neighborhood)',
-                                        type='number', min=0, step=1, value=2
-                                        ),
-                                dbc.FormText('Degree (depth of neighborhood)'),
-                                dbc.Input(
-                                    id='lr-threshold',
-                                    placeholder="Likelihood Ratio lower bound",
-                                    type='number', min=0, value=50.0
-                                    ),
-                                dbc.FormText('Likelihood Ratio lower bound'),
-                                dbc.Input(
-                                        id='p-threshold',
-                                        placeholder="p-value upper bound",
-                                        type='number', min=0, value=0.05),
-                                dbc.FormText("p-value upper bound")
-                            ]),
+
+                            dbc.Col(make_network_form(dm_dict.keys())),
                         ]),
 
                         html.Div([dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'},)],className="d-grid gap-2"),
@@ -405,16 +388,17 @@ if __name__ == '__main__':
             f = go.Figure(ava_hm)
             for data in f.data:
                 fig.add_trace(data)
-                fig.update_layout(xaxis={'mirror': False,
-                                         'showgrid': False,
-                                         'showline': False,
-                                         'zeroline': False,})
+            fig.update_layout(xaxis={'mirror': False,
+                                     'showgrid': False,
+                                     'showline': False,
+                                     'zeroline': False,
+                                     'tickmode': 'array',
+                                     'ticktext': feature_df.columns.str.slice(-8).tolist()})
         return fig
 
     ################################################################################
     ### Network Visualization Callbacks                                          ###
     ################################################################################
-
     @app.callback(
         Output('network-plot', 'layout'),
         Input('network-callbacks-1', 'value')
@@ -431,31 +415,35 @@ if __name__ == '__main__':
         [Input('interactive-button', 'n_clicks'),
          State('node-dropdown', 'value'),
          State('degree', 'value'),
-         State('lr-threshold', 'value'),
-         State('p-threshold', 'value'),]
+         State({'role': 'threshold', 'index': ALL}, 'value'),
+         State({'role': 'bounds-select', 'index': ALL}, 'value')]
     )
-    def update_elements(click, node, degree, lr_threshold, p_threshold):
+    def update_elements(click, nodes, degree, thresholds, bounds):
         n_nodes = 0
         n_edges = 0
-        H = filter_graph(G, node, degree, lr_threshold, p_threshold)
+        attributes = list(dm_dict.keys())
+        H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
         # Graph basics
-        elements = nx_to_dash(H, node)
+        elements = nx_to_dash(H, nodes)
         n_nodes = len(H.nodes)
         n_edges = len(H.edges)
 
-
+        summary_data = [
+            dbc.ListGroupItem("Focal Node: {}".format(nodes)),
+            dbc.ListGroupItem("Degree: {}".format(degree)),
+        ]
+        for attr, thresh in zip(attributes, thresholds):
+            summary_data.append(
+                dbc.ListGroupItem("{0} threshold: {1}".format(attr, thresh)),
+            )
+        summary_data += [dbc.ListGroupItem("n Nodes: {}".format(n_nodes)),
+                         dbc.ListGroupItem("n Edges: {}".format(n_edges)),]
         #summary = html.P("Focal Node: {0}\nDegree: {1}<br>LR Threshold: {2}<br>P Threshold: {3}<br>Nodes in selection: {4}<br>Edges in selection: {5}".format(node, degree, lr_threshold, p_threshold,n_nodes, n_edges))
         summary = dbc.ListGroup(
-            [
-                dbc.ListGroupItem("Focal Node: {}".format(node)),
-                dbc.ListGroupItem("Degree: {}".format(degree)),
-                dbc.ListGroupItem("LR Threshold: {}".format(lr_threshold)),
-                dbc.ListGroupItem("P threshold: {}".format(p_threshold)),
-                dbc.ListGroupItem("n Nodes: {}".format(n_nodes)),
-                dbc.ListGroupItem("n Edges: {}".format(n_edges)),
-            ],
+            summary_data,
         )
         return elements, summary
+
     @app.callback(Output('network-plot', 'stylesheet'),
                 [Input('network-plot', 'tapNode')])
     def highlight_edges(node):
