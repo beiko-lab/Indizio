@@ -6,9 +6,8 @@ import pandas as pd
 
 import dash
 from dash.dependencies import Output, Input, State
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, dash_table, html
+
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 
@@ -32,8 +31,10 @@ if __name__ == '__main__':
     #node_items = [{'label': col, 'value': col} for col in ava_lr.columns]
 
     #G = nx.graphml.read_graphml('data/pagel_results_as_network_updated.graphml')
+    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SOLAR],suppress_callback_exceptions=True)
+    server = app.server
     try:
-        assert len(sys.argv == 2)
+        assert len(sys.argv) == 2
     except:
         raise ValueError('app.py accepts exactly one argument. Please use the included sample sheet maker to create the required file.')
     #get the files
@@ -42,13 +43,19 @@ if __name__ == '__main__':
     #make the network
     print("Initializing network. . . ")
     G = make_graph(metas, dms)
-    print("Done. Configuring dashboard. . ."")
+    node_items = [{'label': node, 'value': node} for node in G.nodes]
+    print("Done. Configuring dashboard. . .")
     heatmap_options = []
+
     for i, tup in enumerate(dms):
         heatmap_options.append({
             'label': tup[0],
-            'value': i
+            'value': tup[0]
         })
+    #dms is a list of tuples
+    dm_dict = {attr:frame for attr, frame in dms}
+    #metas is either list of tuples or empty list
+    meta_dict = {attr:frame for attr,frame in metas}
     default_stylesheet = [
                             {
                                 'selector':'edge',
@@ -80,7 +87,7 @@ if __name__ == '__main__':
                                 },
                             },
                             ]
-    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SOLAR],suppress_callback_exceptions=True)
+
 
 
     ################################################################################
@@ -147,16 +154,17 @@ if __name__ == '__main__':
                 dcc.Loading(dcc.Graph(id='heatmap-graph'),),
                 dbc.Row([
                     dbc.Col([
-                        dbc.FormGroup([
+                        html.Div([
                             dbc.Label("Choose Metric"),
                             dcc.Dropdown(
-                                id="dataset-select", value=1,
+                                id="dataset-select", value=heatmap_options[0]['value'],
                                 options=heatmap_options,
                             ),
                     ],className='pl-5 pr-5'),
-                ],),
+                        ],),
+                    ]),
             ]),
-        ]),
+        ])
     ])
 
 
@@ -167,7 +175,7 @@ if __name__ == '__main__':
                 html.H3(children="Network Visualization"),
                 dbc.Row([
                     dbc.Col(width=6,children=[
-                        dbc.FormGroup([
+                        html.Div([
                             dbc.Label("Change network Layout"),
                             dcc.Dropdown(
                                 id='network-callbacks-1',
@@ -192,7 +200,7 @@ if __name__ == '__main__':
                                 ], className="bg-light text-dark",
                             ),
                             ]),
-                        dbc.FormGroup([
+                        html.Div([
                             dbc.Col([
                                 dbc.Label('Select a node of interest.'),
                                 dcc.Dropdown(
@@ -224,7 +232,7 @@ if __name__ == '__main__':
                             ]),
                         ]),
 
-                        dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'}, block=True),
+                        html.Div([dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'},)],className="d-grid gap-2"),
                     ]),
 
                     dbc.Col(
@@ -263,7 +271,7 @@ if __name__ == '__main__':
                 dcc.Loading(dcc.Graph(id='histogram-graph'),),
                 dbc.Row([
                     dbc.Col([
-                        dbc.FormGroup([
+                        html.Div([
                             dbc.Label("Choose Facet Metric"),
                             dcc.Dropdown(
                                 id="histogram-metric-select", value=1,
@@ -277,7 +285,7 @@ if __name__ == '__main__':
                                     {"label": "Focal Node Degree", "value": 1},
                                     {"label": "Graph n Nodes", "value": 2},
                                     {'label': "Graph n Edges", 'value': 3},]),
-                            dbc.Button('Re-calculate Plot', id='histogram-button', color='primary', style={'margin-bottom': '1em'}, block=True),
+                            html.Div([dbc.Button('Re-calculate Plot', id='histogram-button', color='primary', style={'margin-bottom': '1em'})],className="d-grid gap-2"),
                         ]),
                     ],className='pl-5 pr-5'),
                 ],),
@@ -295,6 +303,7 @@ if __name__ == '__main__':
         [Input('dataset-select', 'value'),]
     )
     def plot(dataset):
+        """
         df_map = {'1': (ava_lr, ave_lr),
                   '2': (ava_p, ave_p),}
 
@@ -330,9 +339,10 @@ if __name__ == '__main__':
         zmin, zmax = z_bounds_map[str(dataset)]
         colorbar = colorbar_map[str(dataset)]
         colorscale = colorscale_map[str(dataset)]
+        """
 
         fig = go.Figure()
-
+        """
         ave_hm = go.Heatmap(x=ave.columns,
                             y=ave.index,
                             z=ave,
@@ -341,46 +351,64 @@ if __name__ == '__main__':
                             colorscale=colorscale,
                             showscale=False,
                            )
+        """
+        feature_df = dm_dict[dataset]
+        meta_df = None
+        if dataset in meta_dict.keys():
+            meta_df = meta_dict[dataset]
 
-        ava_hm = go.Heatmap(x=ava.columns,
-                            y=ava.index,
-                            z=ava,
-                            zmin=zmin,
-                            zmax=zmax,
-                            colorscale=colorscale,
-                            colorbar=colorbar,
+        ava_hm = go.Heatmap(x=feature_df.columns,
+                            y=feature_df.index,
+                            z=feature_df,
+                            #zmin=zmin,
+                            #zmax=zmax,
+                            colorscale='inferno',
+                            #colorbar=colorbar,
                            )
+        if meta_df:
+            meta_hm = go.Heatmap(x=meta_df.columns,
+                                 y=meta_df.index,
+                                 z=meta_df,
+                                 colorscale='inferno',
+                                 showscale=False
+            )
+            f1 = go.Figure(meta_hm)
+            for data in f1.data:
+                fig.add_trace(data)
 
-        f1 = go.Figure(ave_hm)
-        for data in f1.data:
-            fig.add_trace(data)
+            f2 = go.Figure(ava_hm)
+            for i in range(len(f2['data'])):
+                f2['data'][i]['xaxis'] = 'x2'
 
-        f2 = go.Figure(ava_hm)
-        for i in range(len(f2['data'])):
-            f2['data'][i]['xaxis'] = 'x2'
+            for data in f2.data:
+                fig.add_trace(data)
 
-        for data in f2.data:
-            fig.add_trace(data)
-
-        fig.update_layout({'height':800})
-        fig.update_layout(xaxis={'domain': [.0, .20],
-                                          'mirror': False,
-                                          'showgrid': False,
-                                          'showline': False,
-                                          'zeroline': False,
-                                          #'ticks':"",
-                                          #'showticklabels': False
-                                })
-        # Edit xaxis2
-        fig.update_layout(xaxis2={'domain': [0.25, 1.0],
-                                           'mirror': False,
-                                           'showgrid': False,
-                                           'showline': False,
-                                           'zeroline': False,
-                                           #'showticklabels': False,
-                                           #'ticks':""
-                                 })
-
+            fig.update_layout({'height':800})
+            fig.update_layout(xaxis={'domain': [.0, .20],
+                                              'mirror': False,
+                                              'showgrid': False,
+                                              'showline': False,
+                                              'zeroline': False,
+                                              #'ticks':"",
+                                              #'showticklabels': False
+                                    })
+            # Edit xaxis2
+            fig.update_layout(xaxis2={'domain': [0.25, 1.0],
+                                               'mirror': False,
+                                               'showgrid': False,
+                                               'showline': False,
+                                               'zeroline': False,
+                                               #'showticklabels': False,
+                                               #'ticks':""
+                                     })
+        else:
+            f = go.Figure(ava_hm)
+            for data in f.data:
+                fig.add_trace(data)
+                fig.update_layout(xaxis={'mirror': False,
+                                         'showgrid': False,
+                                         'showline': False,
+                                         'zeroline': False,})
         return fig
 
     ################################################################################

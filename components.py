@@ -1,7 +1,7 @@
 # Some components are reused in each app. Put here for easier code readability
 import dash
-from dash import dash_core_components
-from dash import dash_html_components
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 
 def make_navbar(active=0):

@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-
+from collections import Counter
 import networkx as nx
-
+import os
+from tqdm import tqdm
 
 ################################################################################
 ### Network Utils                                                            ###
@@ -111,33 +112,30 @@ def make_graph(meta_files, distance_files):
     edge_attrs = []
     for tup in distance_files:
         edge_attrs.append(tup[0])
-        edge_dfs.append(pd.read_table(tup[1], sep=',', index_col=0))
+        edge_dfs.append(tup[1])
 
     # Make sure the dfs are all same shapes
     assert len(list(set([df.shape[0] for df in edge_dfs]))) == 1
     assert len(list(set([df.shape[1] for df in edge_dfs]))) == 1
 
-    mask = np.ones(edge_dfs[0].shape,dtype='bool')
-    mask[np.tril_indices(len(edge_dfs[0]))] = False
-    #mi will contain tuples of all nodes
-    #... Why did i call mi? Who knows....
-    mi = list(edge_dfs[0][edge_dfs[0].notnull()].stack().index)
-
+    stacked = [frame.where(np.triu(np.ones(frame.shape)).astype(np.bool)).stack() for frame in edge_dfs]
+    pairs = stacked[0].index
     print("Constructing nodes. . .")
     nodes = list(edge_dfs[0].columns)
-    for node in nodes:
+
+    for node in tqdm(nodes):
         G.add_node(node)
 
     print("Constructing edges. . .")
     #edges = []
-    data = list(zip(edge_attrs, edge_dfs))
-    for tup in mi:
-        attr = {}
-        n1 = tup[0]
-        n2 = tup[1]
+    data = list(zip(edge_attrs, stacked))
+    edge_dict = {k: dict() for k in pairs}
+    for tup in tqdm(pairs):
         for attribute, df in data:
-            attr[attribute] = df.loc[n1][n2]
-        G.add_edges_from([(n1, n2, attr)])
+            edge_dict[tup][attribute] = df.loc[tup]
+
+    edges = [(*k, v) for k, v in edge_dict.items()]
+    G.add_edges_from(edges)
     #Need to add the metadata...
 
     return G
@@ -146,25 +144,25 @@ def make_graph(meta_files, distance_files):
 def initialize_data(path):
     m, d, t, p = parse_samplesheet(path)
     pa = None
-    if p:
+    if type(p) != type(None):
         pa = pd.read_table(p[1], sep=',', dtype=str)
         pa.set_index(pa.columns[0], inplace=True)
         pa = pa.astype(float)
 
     dms = []
-    if d:
+    if type(d) != type(None):
         for tup in d:
             dms.append((tup[0], pd.read_table(tup[1], sep=',')))
     # if there is a pa matrix but no DM, we need to make a DM.
     else:
         dms.append(('(abs) pearson', pa.corr().abs()))
 
-    if m:
+    if type(m) != type(None):
         metas = []
         for tup in m:
             metas.append((tup[0], pd.read_table(tup[1], sep=',')))
     tree = None
-    if t:
+    if type(t) != type(None):
         #load the tree
         pass
 
