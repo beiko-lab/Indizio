@@ -33,6 +33,7 @@ if __name__ == '__main__':
     #G = nx.graphml.read_graphml('data/pagel_results_as_network_updated.graphml')
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],suppress_callback_exceptions=True)
     server = app.server
+    colorscales=px.colors.named_colorscales()
     try:
         assert len(sys.argv) == 2
     except:
@@ -153,6 +154,10 @@ if __name__ == '__main__':
         dbc.Row(id='heatmap-display',children=[
             dbc.Col([
                 dcc.Loading(dcc.Graph(id='heatmap-graph'),),
+            ],className='col-9'),
+
+            dbc.Col(
+                [
                 dbc.Row([
                     dbc.Col([
                         html.Div([
@@ -164,12 +169,27 @@ if __name__ == '__main__':
                     ],className='pl-5 pr-5'),
                         ],),
                     ]),
-            ]),
+                    dbc.Row([
+                    html.P("Color Scale"),
+                    dcc.Dropdown(
+                        id='colorscale',
+                        options=[{"value": x, "label": x}
+                                 for x in colorscales],
+                        value='viridis'
+                    ),]),
+                    html.Div(id='slider-container',
+                        children=[
+                            dcc.RangeSlider(min=0,max=0)
+                        ]
+                    ),
+                    dbc.Button('Update Heatmap', id='heatmap-button', color='secondary'),
+                ]
+            ),
         ])
     ])
 
 
-    ### Network summary layout ###
+    ### Network viz layout ###
     page2_layout = dbc.Container(fluid=True, children=[
         dbc.Row([
             dbc.Row([
@@ -283,10 +303,24 @@ if __name__ == '__main__':
     ### Heatmap Callbacks                                                        ###
     ################################################################################
     @app.callback(
-        Output('heatmap-graph', 'figure'),
-        [Input('dataset-select', 'value'),]
+        Output('slider-container', 'children'),
+        [Input('dataset-select', 'value')]
     )
-    def plot(dataset):
+    def update_colorscale_slider(metric):
+        df = dm_dict[metric]
+        maxval = np.nanmax(df.values)
+        minval = np.nanmin(df.values)
+        slider = dcc.RangeSlider(min=minval, max=maxval, step=(maxval - minval)/100, value=[minval, maxval], tooltip={"placement": "bottom", "always_visible": True}, id={'role': 'slider', 'index':0})
+        return slider
+
+    @app.callback(
+        Output('heatmap-graph', 'figure'),
+        [Input('heatmap-button', 'n_clicks'),
+         State('dataset-select', 'value'),
+         State('colorscale', 'value'),
+         State({'role': 'slider', 'index': ALL}, 'value')]
+    )
+    def plot(click, dataset, colorscale, slidervals):
         """
         df_map = {'1': (ava_lr, ave_lr),
                   '2': (ava_p, ave_p),}
@@ -326,34 +360,31 @@ if __name__ == '__main__':
         """
 
         fig = go.Figure()
-        """
-        ave_hm = go.Heatmap(x=ave.columns,
-                            y=ave.index,
-                            z=ave,
-                            zmin=zmin,
-                            zmax=zmax,
-                            colorscale=colorscale,
-                            showscale=False,
-                           )
-        """
+        #empty initially
+
         feature_df = dm_dict[dataset]
         meta_df = None
         if dataset in meta_dict.keys():
             meta_df = meta_dict[dataset]
-
+        if len(slidervals) == 0:
+            slidervals = [np.nanmin(feature_df.values), np.nanmax(feature_df.values)]
+        else:
+            slidervals = slidervals[0]
         ava_hm = go.Heatmap(x=feature_df.columns,
                             y=feature_df.index,
                             z=feature_df,
-                            #zmin=zmin,
-                            #zmax=zmax,
-                            colorscale='inferno',
+                            colorscale=colorscale,
+                            zmin=slidervals[0],
+                            zmax=slidervals[1],
                             #colorbar=colorbar,
                            )
-        if meta_df:
+        if type(meta_df) != type(None):
             meta_hm = go.Heatmap(x=meta_df.columns,
                                  y=meta_df.index,
                                  z=meta_df,
-                                 colorscale='inferno',
+                                 colorscale=colorscale,
+                                 zmin=slidervals[0],
+                                 zmax=slidervals[1],
                                  showscale=False
             )
             f1 = go.Figure(meta_hm)

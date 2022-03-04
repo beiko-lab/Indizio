@@ -184,7 +184,7 @@ def initialize_data(path):
     if type(m) != type(None):
         metas = []
         for tup in m:
-            metas.append((tup[0], pd.read_table(tup[1], sep=',')))
+            metas.append((tup[0], pd.read_table(tup[1], sep=',', index_col=0)))
     tree = None
     if type(t) != type(None):
         #load the tree
