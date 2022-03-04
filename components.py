@@ -40,7 +40,7 @@ def make_network_form(attributes):
                 dbc.InputGroup([
                     dbc.InputGroupText("{} threshold".format(attr)),
                     dbc.Input(
-                        id={'role': 'theshold', 'index':i},
+                        id={'role': 'threshold', 'index':i},
                         placeholder = "{} threshold".format(attr),
                         type='number', value=0
                         ),
@@ -60,6 +60,8 @@ def make_network_form(attributes):
         ])
         data.append(div)
     return data
+
+
 
 def make_network_filter_form(distance_labels):
     data = [

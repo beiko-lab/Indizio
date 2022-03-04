@@ -3,7 +3,7 @@ import pandas as pd
 from collections import Counter
 import networkx as nx
 import os
-import operator 
+import operator
 from tqdm import tqdm
 
 ################################################################################
@@ -27,27 +27,34 @@ def nx_to_dash(G, nodes):
         edges.append({'data': {'source': e[0], 'target': e[1], **G.edges[e]}})
     return nodesout + edges
 
+def neighborhood(G, node, n):
+    path_lengths = nx.single_source_dijkstra_path_length(G, node)
+    return [node for node, length in path_lengths.items()
+                    if length <= n]
 
 def filter_graph(G, nodes, d, attributes, thresholds, bounds):
-    op_dict = {'1': operator.ge, #Threshold is a lower bound, so edges must be >= thresh
-           '2': operator.le, #Threshold is an upper bound, so edges must be <= thresh
+    print("FILTER GRAPH")
+    print(attributes, thresholds, bounds)
+    op_dict = {1: operator.ge, #Threshold is a lower bound, so edges must be >= thresh
+           2: operator.le, #Threshold is an upper bound, so edges must be <= thresh
            }
     subgraphs = []
     for node in nodes:
+        print("fg ", node)
         node_list = []
         if d == 0:
             node_list.append(node)
         edges = []
         for u,v,e in G.edges(*node_list, data=True):
-            #keep_edge = True
+            keep_edge = True
             #if e['lr'] >= lr_threshold and e['p'] <= p_threshold:
                 #edges.append((u,v))
             for attr, thresh, bound in zip(attributes, thresholds, bounds):
                 op = op_dict[bound]
                 if not op(e[attr], thresh):
-                    #keep_edge = False
-                    continue
-            edges.append((u,v))
+                    keep_edge = False
+            if keep_edge:
+                edges.append((u,v))
         H=G.edge_subgraph(edges)
         if node in H.nodes:
             if d==0:
@@ -169,7 +176,7 @@ def initialize_data(path):
     dms = []
     if type(d) != type(None):
         for tup in d:
-            dms.append((tup[0], pd.read_table(tup[1], sep=',')))
+            dms.append((tup[0], pd.read_table(tup[1], sep=',', index_col=0)))
     # if there is a pa matrix but no DM, we need to make a DM.
     else:
         dms.append(('(abs) pearson', pa.corr().abs()))

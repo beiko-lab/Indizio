@@ -206,7 +206,7 @@ if __name__ == '__main__':
                                 dcc.Dropdown(
                                     id='node-dropdown',
                                     options=node_items,
-                                    value=node_items[1]['value'],
+                                    value=[node_items[1]['value']],
                                     className="bg-light text-dark",
                                     multi=True),
 
@@ -416,11 +416,13 @@ if __name__ == '__main__':
          State('node-dropdown', 'value'),
          State('degree', 'value'),
          State({'role': 'threshold', 'index': ALL}, 'value'),
-         State({'role': 'bounds-select', 'index': ALL}, 'value')]
+         State({'role': 'bounds-select', 'index': ALL}, 'value'),]
     )
     def update_elements(click, nodes, degree, thresholds, bounds):
         n_nodes = 0
         n_edges = 0
+        print("update_elements threshold: ", thresholds)
+        print("update elements bounds", bounds)
         attributes = list(dm_dict.keys())
         H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
         # Graph basics
