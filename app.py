@@ -31,7 +31,7 @@ if __name__ == '__main__':
     #node_items = [{'label': col, 'value': col} for col in ava_lr.columns]
 
     #G = nx.graphml.read_graphml('data/pagel_results_as_network_updated.graphml')
-    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SOLAR],suppress_callback_exceptions=True)
+    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],suppress_callback_exceptions=True)
     server = app.server
     try:
         assert len(sys.argv) == 2
@@ -60,7 +60,7 @@ if __name__ == '__main__':
                             {
                                 'selector':'edge',
                                 'style': {
-                                    'width': 'mapData(lr, 50, 200, 0.75, 5)',
+                                    #'width': 'mapData(lr, 50, 200, 0.75, 5)',
                                     'opacity': 0.4,
                                 },
                             },
@@ -109,23 +109,24 @@ if __name__ == '__main__':
     landing_page_layout = [
         html.Div(className="position-relative overflow-hidden p-3 p-md-5 m-md-3 text-center bg-light",children=[
             html.Div(className="col-md-5 p-lg-5 mx-auto my-5", children=[
-                html.H1('ARETE BayesTraits', className="display-4 font-weight-normal"),
-                html.P("Interactively explore BayesTraits results.", className='lead font-weight-normal'),
+                html.H1('Indizio', className="display-4 font-weight-normal"),
+                html.P("Interactively explore connected data.", className='lead font-weight-normal'),
+                html.P("(Note: This page will be replaced by a data upload form later.)", className='lead font-weight-normal'),
                 html.A('Get Started', href='page-1', className='btn btn-outline-secondary'),
             ])
         ]),
         html.Div(className="d-md-flex flex-md-equal w-100 my-md-3 pl-md-3",children=[
             html.Div(className="bg-dark mr-md-3 pt-3 px-3 pt-md-5 px-md-5 text-center text-white overflow-hidden",children=[
                 html.Div(className="my-3 py-3", children=[
-                    html.H2('View LR and p-value heat maps.', className='display-5'),
-                    html.P(children=["View BayesTraits associations among VF, AMR, GI, and plasmid. Click 'Matrices'.",
+                    html.H2('Heatmap viewer.', className='display-5'),
+                    html.P(children=["View connected data as heatmaps. Explroe heatmaps for each distance metric you uploaded. Click 'Matrices'.",
                                      ], className='lead'),
                 ])
             ]),
             html.Div(className="bg-light mr-md-3 pt-3 px-3 pt-md-5 px-md-5 text-center overflow-hidden",children=[
                 html.Div(className="my-3 py-3", children=[
                     html.H2("Explore Specific Subnetworks.", className="display-5"),
-                    html.P('Visualize networks surrounding specific nodes. Choose your node, select filtering parameters, and explore. Click "Network Visualisation."', className='lead'),
+                    html.P('Visualize networks surrounding specific nodes. Choose your node or nodes, select filtering parameters, and explore. Click "Network Visualisation."', className='lead'),
 
                 ])
             ])
@@ -171,9 +172,9 @@ if __name__ == '__main__':
     ### Network summary layout ###
     page2_layout = dbc.Container(fluid=True, children=[
         dbc.Row([
-            dbc.Col([
+            dbc.Row([
                 html.H3(children="Network Visualization"),
-                dbc.Row([
+                dbc.Col(children=[
                     dbc.Col(width=6,children=[
                         html.Div([
                             dbc.Label("Change network Layout"),
@@ -231,7 +232,7 @@ if __name__ == '__main__':
                             )
                     ),
                 ]),
-                dbc.Row([
+                dbc.Col(children=[
                     #dbc.Col(dcc.Graph(id='interactive-graph')),  # Not including fig here because it will be generated with the callback
                     dbc.Col(cyto.Cytoscape(
                         id='network-plot',
@@ -243,7 +244,7 @@ if __name__ == '__main__':
                         },
                     ),className='bg-white'),
 
-                ]),
+                ], className='col col-xl-9 col-lg-8 col-md-6 '),
             ], className='bg-secondary text-white')
         ]),
     ])
@@ -388,6 +389,7 @@ if __name__ == '__main__':
             f = go.Figure(ava_hm)
             for data in f.data:
                 fig.add_trace(data)
+            fig.update_layout({'height':800})
             fig.update_layout(xaxis={'mirror': False,
                                      'showgrid': False,
                                      'showline': False,
@@ -457,7 +459,7 @@ if __name__ == '__main__':
                                 'selector':'edge',
                                 'style': {
                                     'opacity': 0.4,
-                                    'width': 'mapData(lr, 50, 200, 0.75, 5)',
+                                    #'width': 'mapData(lr, 50, 200, 0.75, 5)',
                                 },
                             },
                             {'selector': 'node',
