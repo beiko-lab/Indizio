@@ -1,5 +1,6 @@
 import itertools as it
 import sys
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 import pandas as pd
@@ -23,14 +24,7 @@ from components import *
 from utils import *
 
 if __name__ == '__main__':
-    #ava_lr = pd.read_table('data/efaecium_profile_LR_rerunNA.csv', sep=',', index_col=0)
-    #ava_p = pd.read_table('data/efaecium_profile_pval_rerunNA.csv', sep=',', index_col=0)
-    #ave_lr = pd.read_table('data/pagel_LR_featureVsHabitat.csv', sep=',', index_col=0)
-    #ave_p = pd.read_table('data/pagel_pvalue_featureVsHabitat.csv', sep=',', index_col=0)
 
-    #node_items = [{'label': col, 'value': col} for col in ava_lr.columns]
-
-    #G = nx.graphml.read_graphml('data/pagel_results_as_network_updated.graphml')
     FONT_AWESOME = "https://use.fontawesome.com/releases/v5.7.2/css/all.css"
     external_stylesheets = [FONT_AWESOME, dbc.themes.JOURNAL,]
     app = dash.Dash(__name__, external_stylesheets=external_stylesheets,suppress_callback_exceptions=True)
@@ -250,14 +244,16 @@ if __name__ == '__main__':
                             dbc.Col(make_network_form(dm_dict.keys())),
                         ]),
 
-                        html.Div([dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'},)],className="d-grid gap-2"),
+                        html.Div([dbc.Button('Update Network', id='interactive-button', color='success', style={'margin-bottom': '1em'},)],className="d-grid gap-2"),
+                        html.Div([dbc.Button('Download as GraphML', id='download-network-button', color='success', style={'margin-bottom': '1em'},), dcc.Download(id='download-network')],className="d-grid gap-2"),
+
                     ]),
 
                     dbc.Row(
 
                             children=dbc.Card(
                                 [
-                                    dbc.CardHeader("Network Properties", className="bg-success text-white"),
+                                    dbc.CardHeader("Network Properties", className="bg-primary text-white"),
                                     dbc.CardBody(
                                         html.P("Lorem Ipsum and all that.", className='card-text text-dark',
                                         id='node-selected')
@@ -322,7 +318,7 @@ if __name__ == '__main__':
         df = dm_dict[metric]
         maxval = np.nanmax(df.values)
         minval = np.nanmin(df.values)
-        slider = dcc.RangeSlider(min=minval, max=maxval, step=(maxval - minval)/100, value=[minval, maxval], tooltip={"placement": "bottom", "always_visible": True}, id={'role': 'slider', 'index':0})
+        slider = dcc.RangeSlider(min=minval, max=maxval, step=(maxval - minval)/100, value=[minval, maxval], tooltip={"placement": "bottom", "always_visible": False}, id={'role': 'slider', 'index':0})
         return slider
 
     @app.callback(
@@ -467,7 +463,30 @@ if __name__ == '__main__':
             'name': layout,
             'animate': True
         }
-
+    @app.callback(
+        Output("download-network", "data"),
+        [Input('download-network-button', 'n_clicks'),
+        State('node-dropdown', 'value'),
+        State('degree', 'value'),
+        State({'role': 'threshold', 'index': ALL}, 'value'),
+        State({'role': 'bounds-select', 'index': ALL}, 'value'),
+        ]
+    )
+    def download_network(click, nodes, degree, thresholds, bounds):
+        n_nodes = 0
+        n_edges = 0
+        attributes = list(dm_dict.keys())
+        H=None
+        if len(nodes) == 0:
+            elements = []
+        else:
+            H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
+        if H:
+            nfile = NamedTemporaryFile('w')
+            #nfile.name = 'tmp/network.graphml' TODO how can i change the name of this file?
+            nx.readwrite.graphml.write_graphml(H, nfile.name)
+            return dcc.send_file(nfile.name)
+        return dash.no_update
     @app.callback(
         Output('network-plot', 'elements'),
         Output('node-selected', 'children'),
