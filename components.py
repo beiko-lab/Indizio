@@ -57,34 +57,6 @@ def make_network_form(attributes):
                      inline=True,
                  ),
              ])
-        ])
+        ], className="border")
         data.append(div)
     return data
-
-
-
-def make_network_filter_form(distance_labels):
-    data = [
-        dbc.Label('Select thresholding values'),
-        dbc.Input(
-                id='degree',
-                placeholder='Degree (depth of neighborhood)',
-                type='number', min=0, step=1, value=2
-                ),
-        dbc.FormText('Degree (depth of neighborhood)'),
-        """
-        dbc.Input(
-            id='lr-threshold',
-            placeholder="Likelihood Ratio lower bound",
-            type='number', min=0, value=50.0
-            ),
-        dbc.FormText('Likelihood Ratio lower bound'),
-        dbc.Input(
-                id='p-threshold',
-                placeholder="p-value upper bound",
-                type='number', min=0, value=0.05),
-        dbc.FormText("p-value upper bound")
-        """
-    ]
-    for metric in distance_labels:
-        input = dbc.Input(id)

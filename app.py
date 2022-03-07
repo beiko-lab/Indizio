@@ -31,7 +31,9 @@ if __name__ == '__main__':
     #node_items = [{'label': col, 'value': col} for col in ava_lr.columns]
 
     #G = nx.graphml.read_graphml('data/pagel_results_as_network_updated.graphml')
-    app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],suppress_callback_exceptions=True)
+    FONT_AWESOME = "https://use.fontawesome.com/releases/v5.7.2/css/all.css"
+    external_stylesheets = [FONT_AWESOME, dbc.themes.JOURNAL,]
+    app = dash.Dash(__name__, external_stylesheets=external_stylesheets,suppress_callback_exceptions=True)
     server = app.server
     colorscales=px.colors.named_colorscales()
     try:
@@ -46,10 +48,10 @@ if __name__ == '__main__':
     G = make_graph(metas, dms)
     node_items = [{'label': node, 'value': node} for node in G.nodes]
     print("Done. Configuring dashboard. . .")
-    heatmap_options = []
+    dm_metric_options = []
 
     for i, tup in enumerate(dms):
-        heatmap_options.append({
+        dm_metric_options.append({
             'label': tup[0],
             'value': tup[0]
         })
@@ -163,8 +165,8 @@ if __name__ == '__main__':
                         html.Div([
                             dbc.Label("Choose Metric"),
                             dcc.Dropdown(
-                                id="dataset-select", value=heatmap_options[0]['value'],
-                                options=heatmap_options,
+                                id="dataset-select", value=dm_metric_options[0]['value'],
+                                options=dm_metric_options,
                             ),
                     ],className='pl-5 pr-5'),
                         ],),
@@ -175,13 +177,25 @@ if __name__ == '__main__':
                         id='colorscale',
                         options=[{"value": x, "label": x}
                                  for x in colorscales],
-                        value='viridis'
+                        value='inferno'
                     ),]),
-                    html.Div(id='slider-container',
-                        children=[
-                            dcc.RangeSlider(min=0,max=0)
-                        ]
+                    dbc.RadioItems(
+                        options=[
+                            {"label": "Continuous", "value": 1},
+                            {"label": "Binned", "value": 2},
+                        ],
+                        value=1,
+                        id="plot-mode-radio", inline=True,
                     ),
+                    dbc.Row([
+                        dbc.Button(html.Span([html.I(className="fas fa-minus-circle ml-2")]), className='col col-1',id='minus-button' ),
+                        dbc.Button(html.Span([html.I(className="fas fa-plus-circle ml-2")]), className='col col-1', id='plus-button'),
+                        dbc.Col(id='slider-container',
+                            children=[
+                                dcc.RangeSlider(min=0,max=0)
+                            ]
+                        ),
+                    ]),
                     dbc.Button('Update Heatmap', id='heatmap-button', color='secondary'),
                 ]
             ),
@@ -195,7 +209,7 @@ if __name__ == '__main__':
             dbc.Row([
                 html.H3(children="Network Visualization"),
                 dbc.Col(children=[
-                    dbc.Col(width=6,children=[
+                    dbc.Row(children=[
                         html.Div([
                             dbc.Label("Change network Layout"),
                             dcc.Dropdown(
@@ -227,7 +241,7 @@ if __name__ == '__main__':
                                 dcc.Dropdown(
                                     id='node-dropdown',
                                     options=node_items,
-                                    value=[node_items[1]['value']],
+                                    value=[],
                                     className="bg-light text-dark",
                                     multi=True),
 
@@ -239,8 +253,8 @@ if __name__ == '__main__':
                         html.Div([dbc.Button('Update iPlot', id='interactive-button', color='success', style={'margin-bottom': '1em'},)],className="d-grid gap-2"),
                     ]),
 
-                    dbc.Col(
-                            width=6,
+                    dbc.Row(
+
                             children=dbc.Card(
                                 [
                                     dbc.CardHeader("Network Properties", className="bg-success text-white"),
@@ -276,19 +290,17 @@ if __name__ == '__main__':
                 dbc.Row([
                     dbc.Col([
                         html.Div([
-                            dbc.Label("Choose Facet Metric"),
-                            dcc.Dropdown(
-                                id="histogram-metric-select", value=1,
-                                options=[
-                                    {"label": "Likelihood Ratio", "value": 1},
-                                    {"label": "P Value", "value": 2},]),
-                            dbc.Label("Choose y Value"),
-                            dcc.Dropdown(
-                                id="histogram-y-select", value=1,
-                                options=[
-                                    {"label": "Focal Node Degree", "value": 1},
-                                    {"label": "Graph n Nodes", "value": 2},
-                                    {'label': "Graph n Edges", 'value': 3},]),
+                        dbc.Row([
+                            dbc.Col([
+                                html.Div([
+                                    dbc.Label("Choose Metric"),
+                                    dcc.Dropdown(
+                                        id="histogram-metric-select", value=dm_metric_options[0]['value'],
+                                        options=dm_metric_options,
+                                    ),
+                            ],className='pl-5 pr-5'),
+                                ],),
+                            ]),
                             html.Div([dbc.Button('Re-calculate Plot', id='histogram-button', color='primary', style={'margin-bottom': '1em'})],className="d-grid gap-2"),
                         ]),
                     ],className='pl-5 pr-5'),
@@ -314,68 +326,82 @@ if __name__ == '__main__':
         return slider
 
     @app.callback(
+    Output({"role" : "slider", "index": ALL}, 'value'),
+    [Input('minus-button', 'n_clicks'),
+     Input('plus-button', 'n_clicks'),
+     State({"role" : "slider", "index": ALL}, 'value'),]
+    )
+    def update_marks(minus, plus, sliderstate):
+        ctx = dash.callback_context
+        slidervals = sliderstate[0]
+        print(slidervals)
+        minval = slidervals[0]
+        maxval = slidervals[-1]
+        n_vals = len(slidervals)
+        if not ctx.triggered:
+            button_id = 'noclick'
+        else:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if button_id == 'noclick':
+            print('noclick')
+            return dash.no_update
+        elif button_id == 'minus-button':
+            print("minus")
+            if n_vals <= 2:
+                return dash.no_update
+            #step = (maxval - minval)/(n_vals-1)
+            #vals = []
+            #for i in range(n_vals):
+                #vals.append(minval + step*i)
+            #vals.append(maxval)
+            vals = list(np.linspace(minval, maxval, n_vals-1))
+            print(vals)
+            return [vals]
+        else:
+            vals = list(np.linspace(minval, maxval, n_vals+1))
+            return [vals]
+
+    @app.callback(
         Output('heatmap-graph', 'figure'),
         [Input('heatmap-button', 'n_clicks'),
          State('dataset-select', 'value'),
          State('colorscale', 'value'),
+         State('plot-mode-radio', "value"),
          State({'role': 'slider', 'index': ALL}, 'value')]
     )
-    def plot(click, dataset, colorscale, slidervals):
-        """
-        df_map = {'1': (ava_lr, ave_lr),
-                  '2': (ava_p, ave_p),}
-
-        colorbar_map = {'1': dict(
-                        tick0=0,
-                        dtick=50,
-                        title='LR',
-                        tickvals=[0, 50, 100,150,200],
-                        ticktext=['< 0', '50', '100', '150', '200+'],
-                        tickmode='array',
-                        ),
-                        '2': dict(tick0=0,
-                                  dtick=0.05,
-                                  tickvals=[0.0, 0.05, 0.15, 1.0],
-                                  tickmode='array',
-                                  title='p-value',),
-                        }
-
-        colorscale_map = {'1': [(0.00, px.colors.sequential.ice[0]),   (0.03846, px.colors.sequential.ice[0]),
-                                (0.03846, px.colors.sequential.ice[2]), (0.23076923076923078, px.colors.sequential.ice[2]),
-                                (0.23076923076923078, px.colors.sequential.ice[4]),  (0.42307692307692313, px.colors.sequential.ice[4]),
-                                (0.42307692307692313, px.colors.sequential.ice[6]), (0.6153846153846154, px.colors.sequential.ice[6]),
-                                (0.6153846153846154, px.colors.sequential.ice[8]), (0.8076923076923077, px.colors.sequential.ice[8]),
-                                (0.8076923076923077, px.colors.sequential.ice[10]), (1.0, px.colors.sequential.ice[10])],
-                          '2': [(0.00, px.colors.sequential.ice[0]),   (0.05, px.colors.sequential.ice[0]),
-                                   (0.05, px.colors.sequential.ice[5]), (0.15, px.colors.sequential.ice[3]),
-                                   (0.15, px.colors.sequential.ice[-1]),  (1.00, px.colors.sequential.ice[-1])]}
-
-        z_bounds_map = {'1': (-10, 250),
-                        '2': (0, 1.0)}
-
-        ava, ave = df_map[str(dataset)]
-        zmin, zmax = z_bounds_map[str(dataset)]
-        colorbar = colorbar_map[str(dataset)]
-        colorscale = colorscale_map[str(dataset)]
-        """
+    def plot(click, dataset, scale, mode, slidervals):
 
         fig = go.Figure()
         #empty initially
 
         feature_df = dm_dict[dataset]
         meta_df = None
+
         if dataset in meta_dict.keys():
             meta_df = meta_dict[dataset]
         if len(slidervals) == 0:
             slidervals = [np.nanmin(feature_df.values), np.nanmax(feature_df.values)]
         else:
             slidervals = slidervals[0]
+        slidervals = sorted(slidervals)
+        if mode == 2:
+            colorscale = []
+            colors = get_color(scale, np.linspace(0,1, len(slidervals)-1))
+            minval = min(slidervals)
+            maxval = max(slidervals)
+            normed_vals = [(x-minval)/(maxval-minval) for x in slidervals]
+            for i, _ in enumerate(normed_vals[:-1]):
+                colorscale.append([normed_vals[i], colors[i]])
+                colorscale.append([normed_vals[i+1], colors[i]])
+        else:
+            colorscale = scale
+
         ava_hm = go.Heatmap(x=feature_df.columns,
                             y=feature_df.index,
                             z=feature_df,
                             colorscale=colorscale,
                             zmin=slidervals[0],
-                            zmax=slidervals[1],
+                            zmax=slidervals[-1],
                             #colorbar=colorbar,
                            )
         if type(meta_df) != type(None):
@@ -384,7 +410,7 @@ if __name__ == '__main__':
                                  z=meta_df,
                                  colorscale=colorscale,
                                  zmin=slidervals[0],
-                                 zmax=slidervals[1],
+                                 zmax=slidervals[-1],
                                  showscale=False
             )
             f1 = go.Figure(meta_hm)
@@ -454,14 +480,15 @@ if __name__ == '__main__':
     def update_elements(click, nodes, degree, thresholds, bounds):
         n_nodes = 0
         n_edges = 0
-        print("update_elements threshold: ", thresholds)
-        print("update elements bounds", bounds)
         attributes = list(dm_dict.keys())
-        H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
-        # Graph basics
-        elements = nx_to_dash(H, nodes)
-        n_nodes = len(H.nodes)
-        n_edges = len(H.edges)
+        if len(nodes) == 0:
+            elements = []
+        else:
+            H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
+            # Graph basics
+            elements = nx_to_dash(H, nodes)
+            n_nodes = len(H.nodes)
+            n_edges = len(H.edges)
 
         summary_data = [
             dbc.ListGroupItem("Focal Node: {}".format(nodes)),
