@@ -318,7 +318,16 @@ if __name__ == '__main__':
         df = dm_dict[metric]
         maxval = np.nanmax(df.values)
         minval = np.nanmin(df.values)
-        slider = dcc.RangeSlider(min=minval, max=maxval, step=(maxval - minval)/100, value=[minval, maxval], tooltip={"placement": "bottom", "always_visible": False}, id={'role': 'slider', 'index':0})
+        slider = dcc.RangeSlider(min=minval, max=maxval,
+                                 step=(maxval - minval)/100,
+                                 marks= {
+                                            minval: {'label': '{:.2f}'.format(minval)},
+                                            maxval: {'label': '{:.2f}'.format(maxval),}
+                                         },
+                                 value=[minval, maxval],
+                                 tooltip={"placement": "bottom", "always_visible": False},
+                                 id={'role': 'slider', 'index':0})
+        print(minval, maxval)
         return slider
 
     @app.callback(
@@ -330,7 +339,6 @@ if __name__ == '__main__':
     def update_marks(minus, plus, sliderstate):
         ctx = dash.callback_context
         slidervals = sliderstate[0]
-        print(slidervals)
         minval = slidervals[0]
         maxval = slidervals[-1]
         n_vals = len(slidervals)
@@ -339,19 +347,11 @@ if __name__ == '__main__':
         else:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         if button_id == 'noclick':
-            print('noclick')
             return dash.no_update
         elif button_id == 'minus-button':
-            print("minus")
             if n_vals <= 2:
                 return dash.no_update
-            #step = (maxval - minval)/(n_vals-1)
-            #vals = []
-            #for i in range(n_vals):
-                #vals.append(minval + step*i)
-            #vals.append(maxval)
             vals = list(np.linspace(minval, maxval, n_vals-1))
-            print(vals)
             return [vals]
         else:
             vals = list(np.linspace(minval, maxval, n_vals+1))
@@ -501,14 +501,14 @@ if __name__ == '__main__':
         n_edges = 0
         attributes = list(dm_dict.keys())
         if len(nodes) == 0:
-            elements = []
-        else:
-            H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
-            # Graph basics
-            elements = nx_to_dash(H, nodes)
-            n_nodes = len(H.nodes)
-            n_edges = len(H.edges)
-
+            nodes = [i['value'] for i in node_items]
+        #else:
+        H = filter_graph(G, nodes, degree, attributes, thresholds, bounds)
+        # Graph basics
+        elements = nx_to_dash(H, nodes)
+        n_nodes = len(H.nodes)
+        n_edges = len(H.edges)
+        #end else
         summary_data = [
             dbc.ListGroupItem("Focal Node: {}".format(nodes)),
             dbc.ListGroupItem("Degree: {}".format(degree)),
@@ -705,4 +705,4 @@ if __name__ == '__main__':
         else:
             return landing_page_layout, '', '', '',
 
-    app.run_server(debug=True)
+    app.run_server(debug=False)
