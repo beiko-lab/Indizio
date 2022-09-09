@@ -11,67 +11,44 @@ git clone https://github.com/alexmanuele/pagel2graph.git
 
 Suggested: Create a conda environment to manage dependancies. This requires Anaconda or Miniconda.
 
-### Linux
-```
-~~conda env create -f environment.yml~~
-```
-Please use the MacOS instructions for now. A later version will include robust install directions.
-### MacOS
+### Linux and MacOS
+The developers intend to create a bioconda recipe at a later date.
 For now, to install:
 ```
-conda create -n indizio networkx
+conda create -n indizio pandas networkx tqdm
 conda activate indizio
+conda install -c anaconda pillow
 conda install -c conda-forge dash dash-bootstrap-components dash_cytoscape
 ```
 
 
 ## Usage
-This repository contains two utilities; a graphML filtering script and an interactive Dash application.
+The major feature of the Inidizio tool is the interactive Dash application.
+The Indizio dash tool is primarily used to identify and visualize correlations among features in a sample set.
 
-### Filtering
-Expects as input a GraphML file where all nodes contain an "lr" attribute referring to likelihood ratio and a 'p' attribute referring to statistical p-value, both having been calculated from pagel.
-Given a GraphML file and a node of interest, filter the GraphML file to contain the node and any neighbors satisfying edge filtering criteria up to a specified depth.
+### Set-up script
+Indizio is flexible with the number of files that can be used as input. As a bare minimum, Indizio requires either a presence/absence table of features in samples or a feature-wise distance matrix. If a presence/absence table is supplied, Indizio will calculate a simple Pearson correlation among features.
 
+Users may supply as many distance matrices as the would like. During the set-up script, they will be asked to name each distance matrix.
+
+Users may also supply metadata. These metadata are meant to be correlations of features to specific labels. At this time, only feature-wise metadata are supported.
+
+Finally, users may upload a phylogenetic tree or similar sample dendrogram file. If both a tree and sample-wise feature presence/absence table are uploaded, Indizio will generate clustergrams.
+
+To run the set-up script, simply activate your conda environment and invoke the script. This script will create a file which should be provided to the Indizio Dash application as input:
 ```
-conda activate pagel2graph
+conda activate indizio
+python3 make_input_sheet.py
+```
 
-python filter_graphml.py \\
- -i input_file_path \\
- -n name of node of interest  \\
- -d degee of graph traversal (int) \\
- -lr minimum likelihood ratio. Values lower than this will be filtered \\
- -p maximum p value. Values higher than this will be filtered \\
- -o Output file name. \\
- ```
 
 ### Dash Application
+The Indizio tool contains a simple to use set-up script that will ask you a series of prompts and  will subsequently generate the input file for the Dash application (see above). The final step of the set-up script will have asked you to name your input file.
 
-##### Configuration
-The current iteration of this software uses hardcoded file paths. Please follow the below instructions to configure the data properly:
+Once the input file is generated, launch the Indizio Dash application:
 
 ```
-# Make sure you're in the right directory
-cd indizio
-# Make a 'data' directory
-mkdir data
+conda activate indizio #if you have not done so already
+python3 app.py myInputSheet.csv
 ```
-The data directory must contain the following files:
-```
-efaecium_profile_LR_rerunNA.csv
-efaecium_profile_pval_rerunNA.csv
-pagel_LR_featureVsHabitat.csv
-pagel_pvalue_featureVsHabitat.csv
-pagel_results_as_network_updated.graphml
-```
-##### Usage
-Once your data is configured properly, usage is simple.
-Open a terminal and activate your conda environment:
-
-`
-conda activate pagel2graph
-`
-Then, type this command into your terminal from the root directory of the codebase:
-
-`python app.py`
-
-This will launch the Dash server. Next, simply open your favorite web browser and navigate to http://localhost:8050/ .
+Next, launch your preferred web browser and navigate to http://localhost:8050/ .
