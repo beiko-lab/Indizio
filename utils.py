@@ -145,7 +145,7 @@ def make_graph(meta_files, distance_files):
     assert len(list(set([df.shape[0] for df in edge_dfs]))) == 1
     assert len(list(set([df.shape[1] for df in edge_dfs]))) == 1
 
-    stacked = [frame.where(np.triu(np.ones(frame.shape)).astype(np.bool)).stack() for frame in edge_dfs]
+    stacked = [frame.where(np.triu(np.ones(frame.shape)).astype(bool)).stack() for frame in edge_dfs]
     pairs = stacked[0].index
     print("Constructing nodes. . .")
     nodes = list(edge_dfs[0].columns)
