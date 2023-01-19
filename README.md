@@ -9,7 +9,7 @@ Download the repository
 git clone https://github.com/beiko-lab/indizio.git
 ```
 
-Suggested: Create a conda environment to manage dependancies. This requires Anaconda or Miniconda.
+Suggested: Create a conda environment to manage dependencies. This requires Anaconda or Miniconda.
 
 
 ### Linux and MacOS
