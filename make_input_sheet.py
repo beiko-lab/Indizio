@@ -44,6 +44,7 @@ def check_exit(in_text):
     return in_text
 
 
+### Input loop called by each prompt to check for file availability and (if available) filenames
 def input_loop(initial_prompt, file_type, label_prompt=True, prompt_multiple=False):
     records = []
     done = False
@@ -78,22 +79,28 @@ def input_loop(initial_prompt, file_type, label_prompt=True, prompt_multiple=Fal
 pa_prompt = 'Do you have a feature presence/absence table? (y/n)'
 dm_prompt = 'Do you have one or more distance matrices? (y/n)'
 tree_prompt = 'Do you have a treefile? (y/n)'
-meta_prompt = 'Do you have any metadata files? (y/n)'
+#meta_prompt = 'Do you have any metadata files? (y/n)'
 file_prompt = 'Enter filepath:'
 name_prompt = "Please name the file:"
 more_prompt = 'Enter 1 to continue, 2 to enter another file:'
 ###
-print("Welcome to Indizio.")
-print("Please make use of this utility to format your input data sheet.")
-print('You may exit any time by typing "exit" and hitting enter.')
-outfile = check_exit(input(Fore.GREEN + 'Please name your spreadsheet:' + Style.RESET_ALL))
+
+print("\n===== Indizio data sheet generator =====")
+print("This application generates a data sheet for use with Indizio.")
+print('You may exit any time by typing "exit" and hitting Enter.')
+print("Minimal requirements are either a presence/absence matrix or a distance matrix.\n")
+
+outfile = check_exit(input(Fore.GREEN + 'Please name your spreadsheet file:' + Style.RESET_ALL))
+
 pa = input_loop(pa_prompt, 'P', False, False)
 dm = input_loop(dm_prompt, 'DM', True, True)
 if not pa and not dm:
     sys.exit("You require either a presence/absence matrix or at least one distance matrix.")
 tree = input_loop(tree_prompt, 'T', False, False)
-meta = input_loop(meta_prompt, 'M', True, True)
+#meta = input_loop(meta_prompt, 'M', True, True)
 
-records = pa + dm + tree + meta
+records = pa + dm + tree + []
 df = pd.DataFrame.from_records(records)
 df.to_csv(outfile, sep=',', index=False)
+
+print ("\nSpreadsheet written to " + outfile)
