@@ -3,11 +3,16 @@ import pandas as pd
 from collections import Counter
 import networkx as nx
 import os
+import sys
 import operator
 from tqdm import tqdm
 from _plotly_utils.basevalidators import ColorscaleValidator
 import plotly.colors
 from PIL import ImageColor
+import ete3
+import dendropy
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.spatial.distance import squareform
 
 ################################################################################
 ### Network Utils                                                            ###
@@ -37,13 +42,13 @@ def neighborhood(G, node, n):
 
 def filter_graph(G, nodes, d, attributes, thresholds, bounds):
     print("FILTER GRAPH")
-    print(attributes, thresholds, bounds)
+    #print(attributes, thresholds, bounds)
     op_dict = {1: operator.ge, #Threshold is a lower bound, so edges must be >= thresh
            2: operator.le, #Threshold is an upper bound, so edges must be <= thresh
            }
     subgraphs = []
     for node in nodes:
-        print("fg ", node)
+        #print("fg ", node)
         node_list = []
         if d == 0:
             node_list.append(node)
@@ -87,7 +92,7 @@ def parse_samplesheet(path):
     valid_codes = set(['M', 'DM', 'T', 'P'])
 
     df = pd.read_table(path, sep=',')
-    print(df.columns)
+    #print(df.columns)
     #Sheet must have exactly three columns.
     try:
         assert list(df.columns) == ['filepath', 'type', 'label']
@@ -145,7 +150,7 @@ def make_graph(meta_files, distance_files):
     assert len(list(set([df.shape[0] for df in edge_dfs]))) == 1
     assert len(list(set([df.shape[1] for df in edge_dfs]))) == 1
 
-    stacked = [frame.where(np.triu(np.ones(frame.shape)).astype(bool)).stack() for frame in edge_dfs]
+    stacked = [frame.where(np.triu(np.ones(frame.shape)).astype(np.bool)).stack() for frame in edge_dfs]
     pairs = stacked[0].index
     print("Constructing nodes. . .")
     nodes = list(edge_dfs[0].columns)
@@ -167,10 +172,30 @@ def make_graph(meta_files, distance_files):
 
     return G
 
+def sort_gene_names(gene_names):
+    terminals = set( [gene[-1] for gene in gene_names] )
+    sets = {k: [] for k in terminals}
+    for gene in gene_names:
+        sets[gene[-1]].append(gene)
+
+    sorted_genes = []
+    for key in sorted(sets.keys()):
+        for gene in sorted(sets[key]):
+            sorted_genes.append(gene)
+    return sorted_genes
+
+def escape_brackets(string):
+    t = string.replace('(', '\(')
+    t = t.replace(')', '\)')
+    return t
+
 #the big one.
 def initialize_data(path):
     m, d, t, p = parse_samplesheet(path)
     pa = None
+    dms = []
+    metas = []
+    tree = None
     if type(p) != type(None):
         print("pa matrix found")
         pa = pd.read_table(p[1], sep=',', dtype=str)
@@ -180,20 +205,35 @@ def initialize_data(path):
     dms = []
     if type(d) != type(None):
         for tup in d:
-            dms.append((tup[0], pd.read_table(tup[1], sep=',', index_col=0)))
+            try:
+                dms.append((tup[0], pd.read_table(tup[1], sep=',', index_col=0)))
+            except:
+                raise Exception(f'Error parsing {tup[1]}. Ensure it is a CSV file')
     # if there is a pa matrix but no DM, we need to make a DM.
     if len(dms)==0:
-        print("pearson")
+        if isinstance(pa, type(None)):
+            print("Need to provide either presence/absense table or distance matrix (or both)")
+            sys.exit()
+        print("No distance matrix provided; computing Pearson correlations")
         dms.append(('(abs) pearson', pa.corr().abs()))
-
-    if type(m) != type(None):
-        metas = []
-        for tup in m:
-            metas.append((tup[0], pd.read_table(tup[1], sep=',', index_col=0)))
-    tree = None
-    if type(t) != type(None):
-        #load the tree
-        pass
+    
+    #tree and metadata dont do anything without a presence/absence table.
+    if type(pa) != type(None):
+        if type(m) != type(None):
+            for tup in m:
+                metas.append((tup[0], pd.read_table(tup[1], sep=',', index_col=0)))
+        if type(t) != type(None) and type(pa) != type(None):
+            treefile= ete3.Tree(t[1], format=1)
+            print("Computing distance matrix from tree, this may take awhile. . .")
+            treefile = dendropy.Tree.get(data=treefile.write(), schema='newick') #TODO check if we could eliminate the ete3 step
+            dm = pd.DataFrame.from_records(treefile.phylogenetic_distance_matrix().as_data_table()._data)
+            #If there are genomes in the tree not in the P/A, add them to the P/A with 0s
+            for genome in set(dm.index) - set(pa.index):
+                print(f"GENOME FOUND IN TREE NOT FOUND IN DM: {genome}")
+            #make a compressed distance matrix from the tree
+            um = squareform(dm[dm.index])
+            #compute linkage for clustering. This is used by the plot
+            tree = linkage(um)
 
     return metas, dms, pa, tree
 
